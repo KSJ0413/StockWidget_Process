@@ -9,6 +9,9 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Intent
 
 /**
  * Implementation of App Widget functionality.
@@ -24,6 +27,14 @@ class StockWidget : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
+
+        // Set up an alarm to update the widget every minute
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, StockWidget::class.java)
+        intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        alarmManager.setRepeating(AlarmManager.RTC, System.currentTimeMillis(), 60000, pendingIntent)
     }
 
     override fun onEnabled(context: Context) {
@@ -72,6 +83,15 @@ internal fun updateAppWidget(
         // 필요한 데이터 추출
         val stockPrice = jsonObject.getDouble("price")
         val changePercent = jsonObject.getDouble("changePercent")
+
+        // SharedPreferences 객체 가져오기
+        val sharedPreferences = context.getSharedPreferences("StockWidget", Context.MODE_PRIVATE)
+
+        // SharedPreferences에 데이터 저장하기
+        val editor = sharedPreferences.edit()
+        editor.putFloat("stockPrice", stockPrice.toFloat())
+        editor.putFloat("changePercent", changePercent.toFloat())
+        editor.commit()
     } else {
         // 응답이 실패했을 때의 처리
         // ...
@@ -79,8 +99,18 @@ internal fun updateAppWidget(
 
     connection.disconnect()
 
-    val widgetText = context.getString(R.string.appwidget_text)
-    // Construct the RemoteViews object
+    // SharedPreferences 객체 가져오기
+    val sharedPreferences = context.getSharedPreferences("StockWidget", Context.MODE_PRIVATE)
+
+    // SharedPreferences에서 데이터 불러오기
+    val oldPrice = sharedPreferences.getFloat("oldPrice", 0.0f)
+    val newPrice = sharedPreferences.getFloat("newPrice", 0.0f)
+
+    // 퍼센트 계산
+    val percentChange = ((newPrice - oldPrice) / oldPrice) * 100
+
+    // 위젯 텍스트 업데이트
+    val widgetText = "Price: $newPrice\nChange: $percentChange%"
     val views = RemoteViews(context.packageName, R.layout.stock_widget)
     views.setTextViewText(R.id.appwidget_text, widgetText)
 
