@@ -1,4 +1,4 @@
-package com.example.stockwidget___process
+package com.example.stockwidget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -12,10 +12,48 @@ import java.net.URL
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import android.content.ContentValues
 
-/**
- * Implementation of App Widget functionality.
- */
+class StockDatabaseHelper(context: Context) :
+    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+    companion object {
+        private const val DATABASE_NAME = "stock.db"
+        private const val DATABASE_VERSION = 1
+        private const val TABLE_STOCKS = "stocks"
+        private const val COLUMN_ID = "_id"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_PRICE = "price"
+        private const val COLUMN_PERCENT = "percent"
+    }
+
+    override fun onCreate(db: SQLiteDatabase) {
+        val createTableSQL = "CREATE TABLE $TABLE_STOCKS (" +
+                "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "$COLUMN_NAME TEXT, " +
+                "$COLUMN_PRICE REAL, " +
+                "$COLUMN_PERCENT REAL)"
+        db.execSQL(createTableSQL)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_STOCKS")
+        onCreate(db)
+    }
+
+    fun insertStock(name: String, price: Double, percent: Double) {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_NAME, name)
+            put(COLUMN_PRICE, price)
+            put(COLUMN_PERCENT, percent)
+        }
+        db.insert(TABLE_STOCKS, null, values)
+        db.close()
+    }
+}
+
 class StockWidget : AppWidgetProvider() {
 
     override fun onUpdate(
@@ -110,7 +148,7 @@ internal fun updateAppWidget(
     val percentChange = ((newPrice - oldPrice) / oldPrice) * 100
 
     // 위젯 텍스트 업데이트
-    val widgetText = "Price: $newPrice\nChange: $percentChange%"
+    val widgetText = "Price: $newPrice\\nChange: $percentChange%"
     val views = RemoteViews(context.packageName, R.layout.stock_widget)
     views.setTextViewText(R.id.appwidget_text, widgetText)
 
