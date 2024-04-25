@@ -15,4 +15,10 @@
         android:text="@string/appwidget_text"
         android:textSize="24sp"
         android:textStyle="bold|italic" />
+
+    <TextView
+        android:id="@+id/newTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text View" />
 </RelativeLayout>
