@@ -89,7 +89,53 @@ internal fun updateAppWidget(
     appWidgetManager: AppWidgetManager,
     appWidgetId: Int
 ) {
-    // API 요청 및 데이터 처리 코드...
+    val endPoint = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService"
+    val apiKey = "B%2BSxs95%2F%2BrJUXfLvraUCT3Hz%2FGxcpKGpUEX17%2BQQ7cFJED07MQ34vQn%2F%2FWj54mgzQkKFH9pFuBKpI0zdu9eSIg%3D%3D"
+
+    // API 요청을 위한 URL 생성
+    val urlString = "$endPoint?serviceKey=$apiKey"
+
+    // URL 객체 생성
+    val url = URL(urlString)
+
+    // HttpURLConnection 객체 생성
+    val connection = url.openConnection() as HttpURLConnection
+
+    // 요청 방식 설정 (GET 또는 POST)
+    connection.requestMethod = "GET"
+
+    // 연결 시도
+    connection.connect()
+
+    // 응답 코드 확인
+    val responseCode = connection.responseCode
+    if (responseCode == HttpURLConnection.HTTP_OK) {
+        // 응답이 성공적으로 왔을 때의 처리
+        val inputStream = connection.inputStream
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        val response = reader.readText()
+
+        // JSON 파싱
+        val jsonObject = JSONObject(response)
+
+        // 필요한 데이터 추출
+        val stockPrice = jsonObject.getDouble("price")
+        val changePercent = jsonObject.getDouble("changePercent")
+
+        // SharedPreferences 객체 가져오기
+        val sharedPreferences = context.getSharedPreferences("StockWidget", Context.MODE_PRIVATE)
+
+        // SharedPreferences에 데이터 저장하기
+        val editor = sharedPreferences.edit()
+        editor.putFloat("stockPrice", stockPrice.toFloat())
+        editor.putFloat("changePercent", changePercent.toFloat())
+        editor.commit()
+    } else {
+        // 응답이 실패했을 때의 처리
+        // ...
+    }
+
+    connection.disconnect()
 
     // SharedPreferences 객체 가져오기
     val sharedPreferences = context.getSharedPreferences("StockWidget", Context.MODE_PRIVATE)
@@ -102,7 +148,7 @@ internal fun updateAppWidget(
     val percentChange = ((newPrice - oldPrice) / oldPrice) * 100
 
     // 위젯 텍스트 업데이트
-    val widgetText = "Price: $newPrice\nChange: $percentChange%"
+    val widgetText = "Price: $newPrice\\nChange: $percentChange%"
     val views = RemoteViews(context.packageName, R.layout.stock_widget)
     views.setTextViewText(R.id.appwidget_text, widgetText)
 
